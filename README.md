@@ -16,14 +16,14 @@ A collection of reusable Agent Skills following the [Agent Skills](https://agent
 ### Option 1: Clone into your project's `.agents/skills/` directory
 
 ```bash
-git clone https://github.com/USER/my-skills.git
+git clone https://github.com/Delta-Rain/my-skills.git
 cp -r my-skills/.agents/skills/* /your-project/.agents/skills/
 ```
 
 ### Option 2: Use the `skills` CLI (if available)
 
 ```bash
-skills install --from https://github.com/USER/my-skills
+skills install --from https://github.com/Delta-Rain/my-skills
 ```
 
 ## Directory Structure
