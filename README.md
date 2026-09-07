@@ -10,6 +10,8 @@ A collection of reusable Agent Skills following the [Agent Skills](https://agent
 | `ppt-page` | Create single-file HTML presentation galleries as a vertical scrollable feed of slide cards. |
 | `slides` | Create and edit PowerPoint slide decks (`.pptx`) with PptxGenJS, layout helpers, and render/validation utilities. |
 | `subtitle-translation-splitter` | Split multilingual translations from an Excel file into per-language SRT subtitle files based on an English segmented SRT. |
+| `tdoc-sheet-sync` | Incremental sync of a Tencent Docs online sheet: download the latest version, diff the 海外简中 column against the local copy, report 增量/改量, and overwrite after user approval. |
+| `tencent-sheet-localization-export` | Export a Tencent Docs sub-sheet to a local xlsx: download data and flatten merged cells (fill the top-left value into the whole range), keeping all original columns and content untouched. |
 
 ## Install
 
@@ -45,9 +47,16 @@ skills install --from https://github.com/Delta-Rain/my-skills
 │   ├── assets/
 │   ├── references/
 │   └── scripts/
-└── subtitle-translation-splitter/
+├── subtitle-translation-splitter/
+│   ├── SKILL.md
+│   └── split_translations.py
+├── tdoc-sheet-sync/
+│   ├── SKILL.md
+│   └── scripts/
+└── tencent-sheet-localization-export/
     ├── SKILL.md
-    └── split_translations.py
+    └── assets/
+        └── process_sheet.py
 ```
 
 ## License
