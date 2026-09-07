@@ -27,6 +27,11 @@ WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx-EB9Mj7slUNSeKPYBpNKIXQ
 SHEET_ID = "1r1IempqDsfDtzHTmUpBGf0j1HCOXk2XP9TD7UUI64EA"
 GID = "1957346467"
 
+# Local proxy for reaching Google (mainland China networks cannot reach Google
+# directly). Set to "" to fall back to urllib's default proxy resolution
+# (HTTP_PROXY/HTTPS_PROXY env vars, then Windows system proxy).
+PROXY_URL = "http://127.0.0.1:7890"
+
 # Cache location: skill_dir/data/
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SKILL_DIR = os.path.dirname(SCRIPT_DIR)
@@ -67,8 +72,15 @@ def download_glossary():
     )
 
     try:
-        with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as response:
-            raw_data = response.read()
+        if PROXY_URL:
+            opener = urllib.request.build_opener(
+                urllib.request.ProxyHandler({"http": PROXY_URL, "https": PROXY_URL})
+            )
+            with opener.open(req, timeout=REQUEST_TIMEOUT) as response:
+                raw_data = response.read()
+        else:
+            with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as response:
+                raw_data = response.read()
     except urllib.error.HTTPError as e:
         print(f"ERROR: HTTP {e.code} - {e.reason}", file=sys.stderr)
         if e.code == 401 or e.code == 403:

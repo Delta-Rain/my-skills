@@ -27,6 +27,18 @@ WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx-EB9Mj7slUNSeKPYBpNKIXQ
 CACHE_FILE = SKILL_DIR + r"\data\glossary_cache.csv"
 ```
 
+**Proxy / 代理说明 (IMPORTANT)**:
+
+- Google 在部分网络环境下无法直连，`scripts/fetch_glossary.py` 已内置本地代理常量
+  `PROXY_URL = "http://127.0.0.1:7890"`，下载时自动经该代理访问 Google Apps Script。
+- 若本机代理端口不同，修改 `scripts/fetch_glossary.py` 中的 `PROXY_URL`；置空 `""` 则回退
+  urllib 默认代理解析（HTTP_PROXY/HTTPS_PROXY 环境变量，其次 Windows 系统代理）。
+- **已知坑**：机器上存在 `DOUBAO_OFFICE_CLI_FORWARD_PROXY` / `DOUBAO_OFFICE_FORWARD_PROXY`
+  两个占位环境变量，会抢占 `urllib.request.getproxies()`，导致 Python **不会**自动读取 Windows
+  系统代理、从而直连 Google 超时。因此必须依赖脚本内置的 `PROXY_URL`（或显式设置
+  `HTTP_PROXY`/`HTTPS_PROXY`），不要只依赖系统代理开关。
+- 若拉取失败（超时/HTTP 000），先确认本机代理（127.0.0.1:7890）已开启，再重试 `--force`。
+
 **IMPORTANT**: Always use the full Python path when running scripts:
 ```powershell
 & "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\python.exe" "<script_path>" <args>
@@ -191,7 +203,7 @@ python search_glossary.py headers                                 # Show column 
 
 ## Error Handling / 错误处理
 
-1. **Web app not accessible**: If the download fails with HTTP error, the Apps Script web app may need re-authorization. Go to the Apps Script editor > Deploy > Manage deployments > Edit > Re-authorize.
+1. **Web app not accessible**: First check the local proxy — fetching requires `127.0.0.1:7890` (see Configuration / 代理说明) to reach Google. If the download fails with HTTP error, the Apps Script web app may need re-authorization. Go to the Apps Script editor > Deploy > Manage deployments > Edit > Re-authorize.
 2. **Cache not found**: Run `fetch_glossary.py --force` to download a fresh copy.
 3. **Column detection failure**: If language columns cannot be auto-detected, ask the user to specify column indices.
 4. **Python not found**: Use the full path `C:\Users\Administrator\AppData\Local\Programs\Python\Python312\python.exe`.
