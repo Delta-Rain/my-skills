@@ -1,8 +1,7 @@
 """
-腾讯文档本地化表格导出脚本（MCP 方案后处理）
+腾讯文档本地化表格导出脚本
 用途：将腾讯文档 get_cell_data 返回的 CSV 数据保存为本地 xlsx 文件
-处理：拆分合并单元格并铺满填充；保留原始全部列与内容、不调整任何列字段；
-      不删除图例/备注行（原样保留）；仅删除尾部全空行。
+仅执行：拆分合并单元格并铺满填充；保留原始全部列与内容，不调整任何列字段
 使用前：按下方"配置参数"区修改参数
 """
 import json
@@ -64,18 +63,9 @@ def main():
                     rows[r].append("")
                 rows[r][c] = value
 
-    # 3. 保留原始全部列与内容（不删列、不筛选、不改表头、不删图例/备注行）
+    # 3. 保留原始全部列与内容（不做任何列字段调整）
 
-    # 4. 仅删除尾部全空行
-    last_data = -1
-    for i, row in enumerate(rows):
-        if any(str(cell).strip() for cell in row):
-            last_data = i
-    if last_data >= 0:
-        rows = rows[:last_data + 1]
-    print(f"去尾部空行后行数: {len(rows)}")
-
-    # 5. 保存xlsx
+    # 4. 保存xlsx
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
     filepath = rf"{OUTPUT_DIR}\{ORIGINAL_NAME}_{timestamp}.xlsx"
     wb = Workbook()
