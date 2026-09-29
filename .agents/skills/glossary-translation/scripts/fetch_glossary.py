@@ -21,7 +21,9 @@ from datetime import datetime, timedelta
 
 # ── Configuration ──────────────────────────────────────────────
 # Google Apps Script Web App URL (deployed as "Anyone" access)
-WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx-EB9Mj7slUNSeKPYBpNKIXQWqZpMN0QtJfWDFGlxajtMsN1q5T9EdMTudBbd7Iv7W/exec"
+# Entry function: doGet (Glossary Sync.js proxy with token auth)
+# token 来自 Glossary Sync.js 里的 SECRET 常量
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyqqPdBRAfFQ5RjJWrAAzM73ook9Rq3Fe06QJEFMf-45TjzNAKjyglrI_yIGifY0_sG/exec?token=8VmVa4nOTKreJm68pS2dKb1hkolJVezg"
 
 # Original Google Sheet (for reference)
 SHEET_ID = "1r1IempqDsfDtzHTmUpBGf0j1HCOXk2XP9TD7UUI64EA"
@@ -97,47 +99,49 @@ def download_glossary():
         print(f"ERROR: {e}", file=sys.stderr)
         return False
 
-    # Decode response
+    # Decode response (CSV plain text)
     text = raw_data.decode("utf-8", errors="replace")
 
-    # Check for HTML error page (auth redirect)
-    if text.strip().startswith("<!DOCTYPE") or text.strip().startswith("<html"):
+    # Check for error responses
+    stripped = text.strip()
+    if stripped.startswith("<!DOCTYPE") or stripped.startswith("<html"):
         print(
-            "ERROR: Received HTML instead of JSON. The web app may need re-authorization.\n"
+            "ERROR: Received HTML instead of CSV. The web app may need re-authorization.\n"
             "Go to the Apps Script editor, click 'Deploy' > 'Manage deployments', "
             "and re-authorize the web app.",
             file=sys.stderr,
         )
         return False
 
-    # Parse JSON (expected: 2D array of values)
+    if stripped == "forbidden":
+        print(
+            "ERROR: Received 'forbidden'. Token may be incorrect or missing.\n"
+            "Check the SECRET in Glossary Sync.js and match it in this script.",
+            file=sys.stderr,
+        )
+        return False
+
+    if not stripped:
+        print("ERROR: Empty response from web app.", file=sys.stderr)
+        return False
+
+    # Parse CSV to extract headers and row count for metadata
+    reader = csv.reader(io.StringIO(text))
     try:
-        data = json.loads(text)
-    except json.JSONDecodeError as e:
-        print(f"ERROR: Failed to parse JSON response: {e}", file=sys.stderr)
-        print(f"First 200 chars: {text[:200]}", file=sys.stderr)
+        headers = next(reader)
+    except StopIteration:
+        print("ERROR: CSV is empty.", file=sys.stderr)
         return False
 
-    if not isinstance(data, list) or len(data) == 0:
-        print("ERROR: Empty or invalid data received.", file=sys.stderr)
-        return False
+    row_count = 1  # header row
+    for _ in reader:
+        row_count += 1
 
-    # Convert 2D array to CSV
-    output = io.StringIO()
-    writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
-    for row in data:
-        # Convert all values to strings, handle None
-        str_row = [str(cell) if cell is not None else "" for cell in row]
-        writer.writerow(str_row)
-
-    csv_text = output.getvalue()
-
-    # Write cache file
+    # Write cache file (utf-8-sig for Excel compatibility)
     with open(CACHE_FILE, "w", encoding="utf-8-sig", newline="") as f:
-        f.write(csv_text)
+        f.write(text)
 
     # Write metadata
-    headers = data[0] if data else []
     meta = {
         "last_fetch": datetime.now().isoformat(),
         "encoding": "utf-8",
@@ -145,7 +149,7 @@ def download_glossary():
         "web_app_url": WEB_APP_URL,
         "sheet_id": SHEET_ID,
         "gid": GID,
-        "row_count": len(data),
+        "row_count": row_count,
         "column_count": len(headers),
         "headers": headers,
     }
@@ -154,8 +158,8 @@ def download_glossary():
 
     # Print summary
     print(f"Successfully downloaded glossary.")
-    print(f"  Source: Google Apps Script")
-    print(f"  Rows: {len(data)}")
+    print(f"  Source: Google Apps Script (CSV channel)")
+    print(f"  Rows: {row_count}")
     print(f"  Columns: {len(headers)}")
     print(f"  Headers: {headers}")
     print(f"  Cache file: {CACHE_FILE}")
